@@ -6,6 +6,8 @@ KTV Song List Web
 
 使用方法(确保安装了yarn/npm/pnpm等和Node.js)
 
+注: 需要先启动redis服务，否则数据无法持久化
+
 ```shell
 git clone https://github.com/StarFreedomX/ktv-song-web.git
 
