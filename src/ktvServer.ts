@@ -99,6 +99,32 @@ export function runKTVServer(staticDir: string, redisUrl?: string) {
         };
     });
 
+    // 打乱歌曲接口
+    router.post('/api/shuffle', async (koaCtx) => {
+        const { roomId: roomIds } = koaCtx.query;
+        const roomId = Array.isArray(roomIds) ? roomIds.at(0) : roomIds;
+        ktvLogger.debug('shuffle: ', roomId)
+        if (!roomId || !roomSongsCache[roomId]) {
+            koaCtx.body = { success: false, msg: 'Room not found' };
+            return;
+        }
+        // Fisher-Yates Shuffle
+        const songs = [...roomSongsCache[roomId]];
+        for (let i = songs.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [songs[i], songs[j]] = [songs[j], songs[i]];
+        }
+
+        // 重置缓存
+        roomSongsCache[roomId] = songs;
+        roomOpCache[roomId] = [];
+
+        const CACHE_EXPIRE_TIME = Number(process.env.CACHE_DATA_EXPIRE_TIME) || 24 * 60 * 60 * 1000;
+        await storage.set(DATABASE_NAME, roomId, songs, CACHE_EXPIRE_TIME);
+
+        koaCtx.body = { success: true, hash: getHash(songs) };
+    });
+
     // Move/Add/Delete 逻辑
     router.post('/api/songOperation', async (koaCtx) => {
         const { roomId: roomIds} = koaCtx.query;
