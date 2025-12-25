@@ -21,8 +21,8 @@ export class KTVLogger {
     }
 
     error = (...args: any[]) => this.debugNumber >= debugTypeArray.indexOf('error') && logger('error', args.join(' '));
-    info = (...args: any[]) => this.debugNumber >= debugTypeArray.indexOf('info') && logger('info', args.join(' '));
-    warn = (...args: any[]) => this.debugNumber >= debugTypeArray.indexOf('warn') && logger('warn', args.join(' '));
+    info = (...args: any[]) => this.debugNumber >= debugTypeArray.indexOf('info') && logger('info', ' '+args.join(' '));
+    warn = (...args: any[]) => this.debugNumber >= debugTypeArray.indexOf('warn') && logger('warn', ' '+args.join(' '));
     debug = (...args: any[]) => this.debugNumber >= debugTypeArray.indexOf('debug') && logger('debug', args.join(' '));
 }
 const ktvLogger = new KTVLogger();

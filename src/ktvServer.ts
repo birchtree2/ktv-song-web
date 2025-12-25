@@ -12,6 +12,7 @@ import axios from "axios";
 const app = new Koa();
 const router = new Router();
 app.use(bodyParser());
+
 interface Song {
     id: string
     title: string
@@ -32,8 +33,9 @@ interface OpLog {
     timestamp: number
 }
 
-
-
+const DEFAULT_CACHE_DATA_EXPIRE_TIME = 24 * 60 * 60 * 1000;
+const DEFAULT_CACHE_OP_EXPIRE_TIME = 5 * 60 * 1000;
+const DATABASE_NAME = "ktv_room" as const;
 
 export function runKTVServer(staticDir: string, redisUrl?: string) {
     // 预读模板文件
@@ -44,7 +46,7 @@ export function runKTVServer(staticDir: string, redisUrl?: string) {
 
     // 校验 roomId
     const ROOM_ID_REGEX = /^[a-zA-Z0-9_-]{1,20}$/;
-    const CACHE_EXPIRE_TIME = Number(process.env.CACHE_DATA_EXPIRE_TIME) || 24 * 60 * 60 * 1000;
+    const CACHE_EXPIRE_TIME = Number(process.env.CACHE_DATA_EXPIRE_TIME) || DEFAULT_CACHE_DATA_EXPIRE_TIME;
 
     // 缓存变量，按 roomId 分隔
     const roomOpCache: Record<string, OpLog[]> = {}
@@ -67,7 +69,7 @@ export function runKTVServer(staticDir: string, redisUrl?: string) {
                 delete roomSongsCache[roomId];
             }
         }
-    }, Number(process.env.CACHE_OP_EXPIRE_TIME) || 5 * 60 * 1000);
+    }, Number(process.env.CACHE_OP_EXPIRE_TIME) || DEFAULT_CACHE_OP_EXPIRE_TIME);
 
 
     // 获取歌曲列表及当前哈希
@@ -78,7 +80,7 @@ export function runKTVServer(staticDir: string, redisUrl?: string) {
         ktvLogger.debug('get: ', roomId, clientHash)
         // 初始化歌曲缓存
         if (!roomSongsCache[roomId]) {
-            const dbData = await storage.get<Song[]>('ktv_room', roomId);
+            const dbData = await storage.get<Song[]>(DATABASE_NAME, roomId);
             roomSongsCache[roomId] = dbData || [];
         }
 
@@ -120,12 +122,11 @@ export function runKTVServer(staticDir: string, redisUrl?: string) {
 
         // 确保缓存存在，防止服务器重启后第一个请求是 POST 导致报错
         if (!roomSongsCache[roomId]) {
-            roomSongsCache[roomId] = (await storage.get<Song[]>('ktv_room', roomId) || []);
+            roomSongsCache[roomId] = (await storage.get<Song[]>(DATABASE_NAME, roomId) || []);
         }
 
         const currentSongs = roomSongsCache[roomId];
         const serverHash = getHash(currentSongs);
-
 
         const nowSongs = [...roomSongsCache[roomId]];
 
@@ -151,7 +152,7 @@ export function runKTVServer(staticDir: string, redisUrl?: string) {
                 break;
             }
         }
-        ktvLogger.debug(song.title,'FIND INDEX AT:', Date.now(), { hitIdx, latest, idArrayHash, logsLength: logs.length })
+        ktvLogger.debug(song.title, 'FIND INDEX AT:', Date.now(), { hitIdx, latest, idArrayHash, logsLength: logs.length })
 
         // REJECT 逻辑：如果前端传来的 Hash 在日志里找不到
         // 可能是因为服务器重启导致 Log 丢失，或者前端落后太多
@@ -174,14 +175,12 @@ export function runKTVServer(staticDir: string, redisUrl?: string) {
             logs.push(currentOp);
             ktvLogger.debug(currentOp.song.title,'PUSH AT:', Date.now())
 
-
-            // 保持日志长度，防止内存溢出（只保留最近 50 条操作记录）
             if (logs.length > 50) logs.shift();
 
             roomSongsCache[roomId] = finalSongs;
             roomOpCache[roomId] = logs;
             ktvLogger.debug(currentOp.song.title,'SYNC AT:', Date.now())
-            await storage.set('ktv_room', roomId, finalSongs, CACHE_EXPIRE_TIME);;
+            await storage.set(DATABASE_NAME, roomId, finalSongs, CACHE_EXPIRE_TIME);;
             ktvLogger.debug(currentOp.song.title,'CACHE AT:', Date.now())
             koaCtx.body = { success: true, hash: finalHash, song };
         } catch (e) {
@@ -507,7 +506,7 @@ export function runKTVServer(staticDir: string, redisUrl?: string) {
     router.get('/:roomId', async (koaCtx) => {
         if (process.env.NODE_ENV === "development") {
             ktvLogger.info('loading template')
-            const templatePath = path.resolve(__dirname, '../static/songRoom.ejs')
+            // const templatePath = path.resolve(__dirname, '../static/songRoom.ejs')
             templateStr = fs.readFileSync(templatePath, 'utf-8')
         }
         const { roomId } = koaCtx.params
@@ -515,7 +514,7 @@ export function runKTVServer(staticDir: string, redisUrl?: string) {
         // 检查路径末尾是否有斜杠
         if (urlPath.endsWith('/')) {
             koaCtx.status = 301;
-            // 加上斜杠并保留 query 参数
+            // 删除斜杠并保留 query 参数
             koaCtx.redirect(urlPath.slice(0,-1) + koaCtx.search);
             return;
         }

@@ -482,7 +482,7 @@
      * @property {boolean} [isAffected]
      * @property {boolean} [isTop]
      */
-    const {createApp, ref, onMounted, onUnmounted} = Vue;
+    const { createApp, ref, onMounted, onUnmounted } = Vue;
     createApp({
         components: {draggable: window.vuedraggable},
         setup() {
@@ -883,7 +883,7 @@
                     const {element, newIndex} = evt.moved;
                     await commitOp({
                         song: element,
-                        toIndex: newIndex // 发送修正后的标尺
+                        toIndex: newIndex
                     });
                 }
             }
