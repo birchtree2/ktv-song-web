@@ -1,5 +1,9 @@
 import * as dotenv from "dotenv";
-dotenv.config();
+// 1. 先加载 .env (本地覆盖配置)
+dotenv.config({ path: '.env' });
+// 2. 再加载 .env.example (项目默认配置)
+dotenv.config({ path: '.env.example' });
+console.log(process.env.CACHE_OP_EXPIRE_TIME);
 import { runKTVServer } from "@/ktvServer";
 import ktvLogger from "@/logger";
 
