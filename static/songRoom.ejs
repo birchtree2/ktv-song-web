@@ -922,27 +922,42 @@
                 }
             };
 
-            // 修改后的跳转函数
             const confirmJump = () => {
                 if (pendingJumpUrl.value) {
                     const url = pendingJumpUrl.value;
-                    // 匹配固定的 10 位 BV 号
+
+                    // 尝试从已有的 URL 中提取 page 参数和 BV 号
+                    // 此时的 url 可能是后端传来的 bilibili://video/BVxxx?page=1
+                    let bvId = null;
+                    let pageIdx = null;
+
                     const bvMatch = url.match(/BV[a-zA-Z0-9]{10}/i);
-                    const bvId = bvMatch ? bvMatch[0] : null;
+                    if (bvMatch) {
+                        bvId = bvMatch[0];
+                        const urlObj = new URL(url.replace('bilibili://', 'https://')); // 借用 URL 对象解析参数
+                        pageIdx = urlObj.searchParams.get('page');
+                    }
 
                     if (jumpMode.value === 'app') {
-                        // App
-                        if (bvId) {
-                            // 转换格式: bilibili://video/BV1234567890
-                            window.location.href = `bilibili://video/${bvId}`;
+                        // --- App ---
+                        // 如果后端已经处理好了协议，直接跳转即可
+                        if (url.startsWith('bilibili://')) {
+                            window.location.href = url;
+                        } else if (bvId) {
+                            // 如果拿到的还是原始链接
+                            window.location.href = `bilibili://video/${bvId}${pageIdx ? `?page=${pageIdx}` : ''}`;
                         } else {
                             window.location.href = url;
                         }
                     } else {
-                        //  Web
+                        // --- Web ---
                         if (bvId) {
-                            // 转换格式: https://m.bilibili.com/video/BV1234567890
-                            window.open(`https://m.bilibili.com/video/${bvId}`, '_blank');
+                            // H5 端的分 P 参数通常是 p=(page+1)
+                            // 这里的处理是为了让 Web 端也能跳到对应的分 P
+                            const pForWeb = pageIdx ? parseInt(pageIdx) + 1 : null;
+                            // 这里的unique_k=0不知道是什么，反正加上之后b站手机网页会显示更详细的信息
+                            const webUrl = `https://m.bilibili.com/video/${bvId}?unique_k=0${pForWeb ? `&p=${pForWeb}` : ''}`;
+                            window.open(webUrl, '_blank');
                         } else {
                             window.open(url, '_blank');
                         }

@@ -7,7 +7,7 @@ import Koa from "koa";
 import Router from "@koa/router";
 import bodyParser from 'koa-bodyparser';
 import { Storage } from "@/storage";
-import axios from "axios";
+import { resolveBilibiliData } from "@/utils";
 
 const app = new Koa();
 const router = new Router();
@@ -137,12 +137,15 @@ export function runKTVServer(staticDir: string, redisUrl?: string) {
         ktvLogger.debug('post: ', roomId, ' base on ', idArrayHash, 'put', song, 'to', toIndex);
         ktvLogger.debug(song.title,'POST AT:', Date.now())
 
-        if (song && song.url && song.url.includes('b23.tv')) {
-            const bvid = await resolveBilibiliBV(song.url);
-            if (bvid) {
-                // 将 url 替换为提取出的 BV 号（或者完整的 bilibili:// 协议）
-                song.url = `bilibili://video/${bvid}`;
-                if (!song.id) song.id = bvid;
+        // 如果是 B 站链接
+        if (song && song.url && (song.url.includes('b23.tv') || song.url.includes('bilibili.com'))) {
+            const biliData = await resolveBilibiliData(song.url);
+            if (biliData) {
+                // 更新 URL
+                song.url = biliData.url;
+                if (!song.title) {
+                    song.title = `${song.title}${biliData.pNum?`(p${biliData.pNum})`:''}`;
+                }
             }
         }
 
@@ -215,48 +218,7 @@ export function runKTVServer(staticDir: string, redisUrl?: string) {
         }
     });
 
-    /**
-     * 解析 B23.TV 短链接并提取 BV 号
-     * @param {string} inputUrl
-     * @returns {Promise<string|null>} 返回提取到的 BV 号
-     */
-    async function resolveBilibiliBV(inputUrl: string): Promise<string> {
-        // 基础校验：必须是 b23.tv 的链接
-        if (!inputUrl.includes('b23.tv')) {
-            // 如果输入已经是原始链接，直接尝试从输入提取
-            return extractBV(inputUrl);
-        }
-        try {
-            // 发起请求，禁止自动重定向
-            const response = await axios(inputUrl, {
-                maxRedirects: 0,
-                validateStatus: (status) => status >= 200 && status < 400,
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/004.1'
-                }
-            });
 
-            const targetUrl = response.headers['location'];
-
-            return extractBV(targetUrl);
-
-        } catch (error) {
-            const loc = error.response?.headers?.location;
-            if (loc) return extractBV(loc);
-
-            ktvLogger.warn('解析 B23 短链接失败:', error.message);
-            return null;
-        }
-    }
-
-    /**
-     * 正则提取 BV 号
-     */
-    function extractBV(url: string) {
-        if (!url) return null;
-        const match = url.match(/(BV[a-zA-Z0-9]{10})/);
-        return match ? match[0] : null;
-    }
 
     /**
      * 对歌曲进行变基操作，并返回最新歌曲列表顺序
