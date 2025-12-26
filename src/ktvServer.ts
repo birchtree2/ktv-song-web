@@ -9,15 +9,17 @@ import { Storage } from "@/storage";
 import { getHash, resolveBilibiliData, songOperation } from "@/utils";
 import { OpLog, Song, SongOperationBody } from "@/types";
 
-const app = new Koa();
-const router = new Router();
-app.use(bodyParser());
 
-const DEFAULT_CACHE_DATA_EXPIRE_TIME = 24 * 60 * 60 * 1000;
-const DEFAULT_CACHE_OP_EXPIRE_TIME = 5 * 60 * 1000;
 const DATABASE_NAME = "ktv_room" as const;
 
 export function runKTVServer(staticDir: string, redisUrl?: string) {
+    const app = new Koa();
+    const router = new Router();
+    app.use(bodyParser());
+
+    const DEFAULT_CACHE_DATA_EXPIRE_TIME = 24 * 60 * 60 * 1000;
+    const DEFAULT_CACHE_OP_EXPIRE_TIME = 5 * 60 * 1000;
+
     // 预读模板文件
     const templatePath = path.resolve(staticDir,'./songRoom.ejs')
     let templateStr = fs.readFileSync(templatePath, 'utf-8')
