@@ -7,6 +7,8 @@ export interface Song {
     id: string
     title: string
     url: string
+    state?: 'queued' | 'sung'
+    addedBy?: string
 }
 
 export interface SongOperationBody {
