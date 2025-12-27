@@ -106,6 +106,7 @@ export function runKTVServer(staticDir: string, redisUrl?: string) {
         const { roomId: roomIds } = koaCtx.query;
         const roomId = Array.isArray(roomIds) ? roomIds.at(0) : roomIds;
         const { idArrayHash } = koaCtx.request.body as { idArrayHash: string };
+        ktvLogger.debug('nextSong: ', roomId, idArrayHash)
 
         if (!roomSongsCache[roomId]) {
             roomSongsCache[roomId] = (await storage.get<Song[]>(DATABASE_NAME, roomId) || []);
@@ -130,6 +131,7 @@ export function runKTVServer(staticDir: string, redisUrl?: string) {
             toIndex: toIndex,
             timestamp: Date.now()
         };
+        ktvLogger.debug('nextSong OP: ', roomId, currentOp);
 
         const logs = roomOpCache[roomId] || [];
         const latest = idArrayHash === serverHash;
