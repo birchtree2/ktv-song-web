@@ -647,7 +647,7 @@
             const roomId = "<%= roomId %>"
             const EMPTY_HASH = "EMPTY_LIST_HASH"; // 与后端 getHash 函数中的占位符一致
             const lastHash = ref(EMPTY_HASH);
-            const activeTab = ref('queue'); // 'queue' or 'history'
+            const activeTab = ref(localStorage.getItem('ktv_active_tab') || 'queue');
             const isDragging = ref(false);
             const deletingSong = ref(null);
             const editingSong = ref(null);
@@ -705,6 +705,7 @@
 
             watch(jumpMode, (val) => localStorage.setItem('ktv_jump_mode', val));
             watch(autoJump, (val) => localStorage.setItem('ktv_auto_jump', val));
+            watch(activeTab, (val) => localStorage.setItem('ktv_active_tab', val));
 
             if (!window.isSecureContext) {
                 console.error("当前环境不是安全上下文，Web Crypto API 将不可用！");
