@@ -4,7 +4,7 @@
     "contributors": [
         "StarFreedomX <starfreedomx@outlook.com>"
     ],
-    "version": "0.0.1",
+    "version": "0.1.0",
     "main": "lib/index.js",
     "typings": "lib/index.d.ts",
     "scripts": {
@@ -13,7 +13,7 @@
         "start": "cross-env NODE_ENV=production node ./lib/index.js",
         "build": "node build.mjs",
         "docker-build": "docker-compose up -d --build --force-recreate --remove-orphans",
-        "docker-build-proxy": "cross-env HTTP_PROXY=http://127.0.0.1:7890 HTTPS_PROXY=http://127.0.0.1:7890 docker-compose up -d --build --force-recreate --remove-orphans",
+        "docker-build-proxy": "cross-env HTTP_PROXY=http://127.0.0.1:7890 HTTPS_PROXY=http://127.0.0.1:7890 docker-compose up -d --build --force-recreate --remove-orphans"
     },
     "files": [
         "lib",
@@ -26,24 +26,21 @@
     "peerDependencies": {},
     "dependencies": {
         "@koa/router": "^15.1.1",
-        "@types/koa-bodyparser": "^4.3.13",
         "axios": "^1.13.2",
         "dotenv": "^17.2.3",
         "ejs": "^3.1.10",
-        "express": "^5.2.1",
         "koa": "^3.1.1",
         "koa-bodyparser": "^4.4.1",
-        "node-persist": "^4.0.4",
-        "redis": "^5.10.0",
-        "tsx": "^4.21.0"
+        "redis": "^5.10.0"
     },
     "devDependencies": {
         "@types/ejs": "^3.1.5",
-        "@types/express": "^5.0.6",
         "@types/koa": "^3.0.1",
+        "@types/koa-bodyparser": "^4.3.13",
         "@types/koa__router": "^12.0.5",
-        "@types/node-persist": "^3.1.8",
+        "@types/node": "^25.0.3",
         "cross-env": "^10.1.0",
-        "esbuild": "^0.27.2"
+        "esbuild": "^0.27.2",
+        "tsx": "^4.21.0"
     }
 }
