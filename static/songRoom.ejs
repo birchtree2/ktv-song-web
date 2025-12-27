@@ -8,6 +8,8 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vuedraggable@4.1.0/dist/vuedraggable.umd.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-sha256@0.11.0/src/sha256.min.js"></script>
+    <!-- 一个纯js版的 SHA-256 实现，用于HTTP下前端生成列表哈希 -->
     <style>
 
         /* 定义转一圈的动画 */
@@ -710,26 +712,31 @@
             watch(autoJump, (val) => localStorage.setItem('ktv_auto_jump', val));
             watch(activeTab, (val) => localStorage.setItem('ktv_active_tab', val));
 
-            if (!window.isSecureContext) {
-                console.error("当前环境不是安全上下文，Web Crypto API 将不可用！");
-                alert("当前环境不是安全上下文，Web Crypto API 将不可用，这可能会导致一些同步的问题");
-            }
-
-
             async function getHash(songs) {
-                if (!window.isSecureContext) return lastHash.value;
                 if (!songs || songs.length === 0) return "EMPTY_LIST_HASH";
 
-                // 将歌曲对象数组转为固定格式的字符串
                 const str = songs.map(s => `${s.id}:${s.title}:${s.url}:${s.state || 'queued'}:${s.addedBy || ''}`).join('|');
-                const msgBuffer = new TextEncoder().encode(str);
 
-                // SHA-256
-                const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgBuffer);
+                // 1. 优先使用原生 Web Crypto API (性能最好，支持安全上下文)
+                if (window.isSecureContext && window.crypto && window.crypto.subtle) {
+                    try {
+                        const msgBuffer = new TextEncoder().encode(str);
+                        const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgBuffer);
+                        return Array.from(new Uint8Array(hashBuffer))
+                            .map(b => b.toString(16).padStart(2, '0'))
+                            .join('');
+                    } catch (e) {
+                        console.warn("Native Crypto API failed, falling back...", e);
+                    }
+                }
+                if (typeof sha256 === 'function') { // 2. 备选方案：使用 js-sha256 库 (非安全上下文或原生失败)
+                    return sha256(str);
+                }
 
-                // 将 ArrayBuffer 转为十六进制字符串
-                const hashArray = Array.from(new Uint8Array(hashBuffer));
-                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                // 3. 最终兜底：如果库也没加载出来，返回当前记录的 hash 避免崩溃，弹窗提醒
+                alert("当前环境不支持 SHA-256 哈希计算，某些操作可能无法正常进行。请使用支持的浏览器（如 Chrome、Firefox、Edge 等）并确保在 HTTPS 环境下访问。");
+                console.error("SHA-256 calculation failed: No supported method available.");
+                return lastHash.value;
             }
 
             const commitOp = async (opData) => {
