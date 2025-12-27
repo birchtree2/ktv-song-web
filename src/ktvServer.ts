@@ -119,7 +119,7 @@ export function runKTVServer(staticDir: string, redisUrl?: string) {
         }
 
         const song = { ...currentSongs[nextSongIdx], state: 'sung' as const };
-        // 将其移动到列表末尾（已唱列表的最后）
+        // 将其移动到列表末尾（已唱列表的最后） 这里是把[待唱，已唱]看成一个整体来操作
         const toIndex = currentSongs.length - 1;
 
         const serverHash = getHash(currentSongs);
