@@ -278,7 +278,12 @@
                         <div class="font-bold text-slate-700 truncate group-hover:text-indigo-600 transition">
                             {{ element.title }}
                         </div>
-                        <div class="text-xs text-slate-400 truncate">{{ element.url }}</div>
+                        <div class="flex items-center gap-2 mt-0.5">
+                            <span v-if="element.addedBy" class="shrink-0 text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-400 rounded-md font-medium">
+                                {{ element.addedBy }}
+                            </span>
+                            <div class="text-xs text-slate-400 truncate">{{ element.url }}</div>
+                        </div>
                     </div>
 
                     <button @click.stop="moveToTop(element)" class="p-2 text-slate-300 hover:text-orange-500 transition"
@@ -321,7 +326,12 @@
                 <div class="font-bold text-slate-500 truncate group-hover:text-indigo-600 transition">
                     {{ element.title }}
                 </div>
-                <div class="text-[10px] text-slate-300 truncate">{{ element.url }}</div>
+                <div class="flex items-center gap-2 mt-0.5">
+                    <span v-if="element.addedBy" class="shrink-0 text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-400 rounded-md font-medium">
+                        {{ element.addedBy }}
+                    </span>
+                    <div class="text-[10px] text-slate-300 truncate">{{ element.url }}</div>
+                </div>
             </div>
             <div class="text-[10px] font-bold text-slate-300 bg-slate-100 px-2 py-1 rounded-lg">已唱</div>
         </div>
@@ -329,6 +339,35 @@
             暂无已唱记录
         </div>
     </div>
+
+    <transition name="modal-fade">
+        <div v-if="showNicknameModal"
+             class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md"
+             @click.self="nickname ? showNicknameModal = false : null">
+            <div class="modal-container bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 space-y-6 text-center">
+                <div class="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                </div>
+                <div class="space-y-2">
+                    <h3 class="text-2xl font-black text-slate-800">设置你的昵称</h3>
+                    <p class="text-slate-400 text-sm">让大家知道是谁点的歌吧！</p>
+                </div>
+                <input v-model="tempNickname"
+                       @keyup.enter="saveNickname"
+                       class="w-full px-6 py-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-400 text-center text-lg font-bold transition"
+                       placeholder="输入昵称..."
+                       autoFocus>
+                <button @click="saveNickname"
+                        :disabled="!tempNickname.trim()"
+                        class="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 transition active:scale-95 disabled:opacity-50 disabled:active:scale-100">
+                    开始点歌
+                </button>
+            </div>
+        </div>
+    </transition>
 
     <transition name="modal-fade">
         <div v-if="showAddModal"
@@ -490,6 +529,14 @@
                 <div class="space-y-4">
                     <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                         <div class="flex items-center justify-between mb-2">
+                            <span class="font-bold text-slate-700">我的昵称</span>
+                            <button @click="tempNickname = nickname; showNicknameModal = true" class="text-xs font-bold text-indigo-600 hover:underline">修改</button>
+                        </div>
+                        <div class="text-sm text-slate-500 font-medium">{{ nickname || '未设置' }}</div>
+                    </div>
+
+                    <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <div class="flex items-center justify-between mb-2">
                             <span class="font-bold text-slate-700">跳转方式</span>
                             <div class="relative flex bg-slate-200 p-1 rounded-xl w-32 h-9 overflow-hidden">
                                 <div class="absolute top-1 left-1 bottom-1 w-[calc(50%-4px)] bg-white rounded-lg shadow-sm transition-transform duration-300 ease-[cubic-bezier(0.4,1.2,0.3,1)]"
@@ -606,6 +653,9 @@
             const editForm = ref({title: '', url: ''});
             /** @type {import('vue').Ref<Song[]>} */
             const songs = ref([]);
+            const nickname = ref(localStorage.getItem('ktv_nickname') || '');
+            const showNicknameModal = ref(false);
+            const tempNickname = ref('');
 
             // 逻辑拆分：待唱列表和已唱列表
             const queueList = computed({
@@ -666,7 +716,7 @@
                 if (!songs || songs.length === 0) return "EMPTY_LIST_HASH";
 
                 // 将歌曲对象数组转为固定格式的字符串
-                const str = songs.map(s => `${s.id}:${s.title}:${s.url}:${s.state || 'queued'}`).join('|');
+                const str = songs.map(s => `${s.id}:${s.title}:${s.url}:${s.state || 'queued'}:${s.addedBy || ''}`).join('|');
                 const msgBuffer = new TextEncoder().encode(str);
 
                 // SHA-256
@@ -680,8 +730,8 @@
             const commitOp = async (opData) => {
                 let cleanSong = null;
                 if (opData.song) {
-                    const {id, title, url, state} = opData.song;
-                    cleanSong = {id, title, url, state};
+                    const {id, title, url, state, addedBy} = opData.song;
+                    cleanSong = {id, title, url, state, addedBy};
                 }
 
                 try {
@@ -826,6 +876,7 @@
                     id: 's-' + Math.random().toString(36).slice(2, 11),
                     title: form.value.title,
                     url: rawUrl,
+                    addedBy: nickname.value,
                     isNew: true
                 };
 
@@ -1165,8 +1216,19 @@
                 }
             }
 
+            const saveNickname = () => {
+                if (tempNickname.value.trim()) {
+                    nickname.value = tempNickname.value.trim();
+                    localStorage.setItem('ktv_nickname', nickname.value);
+                    showNicknameModal.value = false;
+                }
+            };
+
             let timer
             onMounted(() => {
+                if (!nickname.value) {
+                    showNicknameModal.value = true;
+                }
                 load()
                 // 每 3 秒同步一次数据
                 timer = setInterval(load, 5000)
@@ -1183,6 +1245,7 @@
                 jumpMode, autoJump, showAddModal, autoInput,
                 handleAutoRecognize, handleAdd, showShuffleConfirm,
                 shuffleSongs,handleRefresh,isRefreshing,
+                nickname, showNicknameModal, tempNickname, saveNickname
             }
         }
     }).mount('#app')

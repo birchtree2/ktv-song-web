@@ -8,6 +8,7 @@ export interface Song {
     title: string
     url: string
     state?: 'queued' | 'sung'
+    addedBy?: string
 }
 
 export interface SongOperationBody {
