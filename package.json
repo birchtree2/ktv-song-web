@@ -10,17 +10,18 @@
     "scripts": {
         "dev": "cross-env NODE_ENV=development tsx watch ./src/index.ts",
         "test": "cross-env NODE_ENV=development tsx ./src/index.ts",
-        "start": "cross-env NODE_ENV=production tsx ./src/index.ts"
+        "start": "cross-env NODE_ENV=production node ./lib/index.js",
+        "build": "node build.mjs"
     },
     "files": [
         "lib",
-        "dist",
         "static"
     ],
     "license": "MIT",
     "keywords": [
         "ktv"
     ],
+    "peerDependencies": {},
     "dependencies": {
         "@koa/router": "^15.1.1",
         "@types/koa-bodyparser": "^4.3.13",
@@ -40,6 +41,7 @@
         "@types/koa": "^3.0.1",
         "@types/koa__router": "^12.0.5",
         "@types/node-persist": "^3.1.8",
-        "cross-env": "^10.1.0"
+        "cross-env": "^10.1.0",
+        "esbuild": "^0.27.2"
     }
 }
