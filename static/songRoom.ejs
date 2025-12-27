@@ -228,15 +228,18 @@
     </header>
 
     <!-- 切换按钮 -->
-    <div class="mb-6 flex p-1 bg-slate-100 rounded-2xl">
+    <div class="mb-6 flex p-1 bg-slate-100 rounded-2xl relative">
+        <div class="absolute top-1 left-1 bottom-1 w-[calc(50%-4px)] bg-white rounded-xl shadow-sm transition-transform duration-300 ease-[cubic-bezier(0.4,1.2,0.3,1)]"
+             :style="{ transform: activeTab === 'history' ? 'translateX(100%)' : 'translateX(0)' }">
+        </div>
         <button @click="activeTab = 'queue'"
-                :class="['flex-1 py-2.5 text-sm font-bold rounded-xl transition-all duration-200',
-                         activeTab === 'queue' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600']">
+                :class="['relative z-10 flex-1 py-2.5 text-sm font-bold rounded-xl transition-all duration-200',
+                         activeTab === 'queue' ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600']">
             待唱 ({{ queueList.length }})
         </button>
         <button @click="activeTab = 'history'"
-                :class="['flex-1 py-2.5 text-sm font-bold rounded-xl transition-all duration-200',
-                         activeTab === 'history' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600']">
+                :class="['relative z-10 flex-1 py-2.5 text-sm font-bold rounded-xl transition-all duration-200',
+                         activeTab === 'history' ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600']">
             已唱 ({{ historyList.length }})
         </button>
     </div>
