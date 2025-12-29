@@ -203,6 +203,7 @@ export function runKTVServer(staticDir: string, redisUrl?: string) {
         const allSongs = [...roomSongsCache[roomId]];
         const waitingLength = allSongs.filter(s=>s.state!=='sung').length;
         const serverHash = getHash(allSongs);
+        const alreadyHad = allSongs.some(s=>s.id===song.id)
 
 
         const currentOp: OpLog = {
@@ -211,7 +212,7 @@ export function runKTVServer(staticDir: string, redisUrl?: string) {
             baseHash: serverHash,
             song: song,
             // 这里的toIndex不是变基后的，songOperation函数内会自动修正
-            toIndex: toIndex >= waitingLength ? allSongs.length : toIndex,
+            toIndex: toIndex >= waitingLength ? allSongs.length - (alreadyHad?1:0) : toIndex,
             timestamp: Date.now()
         };
         // ktvLogger.debug(song?.title,'BUILD AT:', Date.now())
