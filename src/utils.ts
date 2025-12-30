@@ -240,6 +240,7 @@ function songOperation(nowSongs: Song[], baseSongIdArray: string[], ops: OpLog[]
             if (opNode.next) opNode.next.prev = opNode.prev;
 
             opNode.prev = opNode.next = null;
+            continue;
         }
 
         // 获取插入位置的前一个元素
