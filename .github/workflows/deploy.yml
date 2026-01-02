@@ -1,0 +1,101 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    # 测试时，监听两个分支
+    branches: [ "master", "deploy" ]
+
+env:
+  IMAGE_NAME: ghcr.io/birchtree2/ktv-song-web
+
+jobs:
+  # ==========================================
+  # 1. 单元测试 (所有分支都跑)
+  # ==========================================
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Jest
+        run: npm test
+
+  # ==========================================
+  # 2. 构建镜像 (只在 deploy 分支跑)
+  # ==========================================
+  build-and-push:
+    needs: test
+    # 【关键配置】只有当前分支是 deploy 时才执行
+    if: github.ref == 'refs/heads/deploy'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ env.IMAGE_NAME }}:latest
+
+  # ==========================================
+  # 3. 部署到服务器 (只在 deploy 分支跑)
+  # ==========================================
+  deploy:
+    needs: build-and-push
+    # 【关键配置】同样只有 deploy 分支才执行
+    if: github.ref == 'refs/heads/deploy'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: SSH Deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_KEY }}
+          script: |
+            # 1. 准备目录
+            mkdir -p ~/ktv-song-web
+            cd ~/ktv-song-web
+
+            # 2. 同步代码
+            if [ ! -d ".git" ]; then
+              # 如果是第一次，clone 下来
+              git clone https://github.com/birchtree2/ktv-song-web.git .
+            fi
+
+            # 3. 【关键步骤】切换到 deploy 分支
+            echo ">>> Switching to deploy branch..."
+            git fetch origin deploy
+            git checkout deploy
+            git reset --hard origin/deploy
+
+            # 4. 登录并更新
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            docker compose pull ktv-server
+            docker compose up -d
+            docker image prune -f

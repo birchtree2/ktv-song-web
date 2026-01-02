@@ -1,8 +1,8 @@
 services:
   ktv-server:
     container_name: k-mlw-worker-1
-    build: .
-    image: ktv-song-web
+    # build: . 不需要build,因为直接用ghcr的image
+    image: ghcr.io/birchtree2/ktv-song-web:latest
     ports:
       - "5823:5823"
     environment:
