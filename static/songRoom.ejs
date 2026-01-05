@@ -595,11 +595,11 @@
                 </div>
 
                 <div class="mt-6 space-y-3">
-                    <button @click="addAllFavoritesToQueue"
+                    <!--<button @click="addAllFavoritesToQueue"
                             :disabled="favorites.length === 0"
                             class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition shadow-lg shadow-indigo-100 disabled:opacity-50 disabled:active:scale-100">
                         全部加入待唱列表
-                    </button>
+                    </button>-->
                     <div class="flex gap-3">
                         <button @click="exportFavorites"
                                 :disabled="favorites.length === 0"
@@ -827,7 +827,7 @@
                 if (!success) await load();
             };
 
-            const addAllFavoritesToQueue = async () => {
+            /*const addAllFavoritesToQueue = async () => {
                 if (favorites.value.length === 0) return;
 
                 // 复制一份收藏列表，避免在循环中被修改影响逻辑
@@ -850,7 +850,7 @@
                     });
                 }
                 await load();
-            };
+            };*/
 
             const exportFavorites = () => {
                 const dataStr = JSON.stringify(favorites.value, null, 2);
@@ -1474,7 +1474,7 @@
                 shuffleSongs,handleRefresh,isRefreshing,
                 nickname, showNicknameModal, tempNickname, saveNickname,
                 favorites, showFavoritesModal, isFavorited, toggleFavorite,
-                addFavoriteToQueue, addAllFavoritesToQueue,
+                addFavoriteToQueue, //addAllFavoritesToQueue,
                 exportFavorites, handleImportFile, fileInput
             }
         }
